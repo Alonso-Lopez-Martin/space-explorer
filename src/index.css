@@ -1,0 +1,591 @@
+:root {
+  --bg-color: #050810;
+  --text-color: #c9d1d9;
+  --accent: #00d2ff;
+}
+
+body {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+.search-panel {
+  margin: 30px auto;
+  max-width: 1200px;
+  width: 100%;
+  display: flex;
+  gap: 15px;
+}
+
+input {
+  flex: 1;
+  padding: 18px 25px;
+  font-size: 1.2em;
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: white;
+  border-radius: 8px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+}
+
+button {
+  padding: 18px 30px;
+  font-size: 1.1em;
+  background: var(--accent);
+  color: black;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  background: #0099cc;
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 30px;
+  font-size: 1.1em;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-weight: bold;
+  text-decoration: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 210, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.estado-mensaje {
+  font-size: 1.1em;
+  margin: 10px 0;
+  min-height: 1.5em;
+}
+
+.viewer-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: #11151c;
+  border: 1px solid #333;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+#planet-display {
+  width: 100%;
+  height: 450px;
+  background: radial-gradient(circle at center, #1a1a2e, #000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.data-corner {
+  padding: 25px;
+  text-align: left;
+  border-top: 1px solid #333;
+}
+
+.data-corner h3 {
+  margin: 0 0 15px 0;
+  color: var(--accent);
+  font-size: 1.8em;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+
+.metadata-stats {
+  color: var(--accent);
+  font-size: 0.9em;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 15px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.data-grid li {
+  background: #1a1e26;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent);
+  font-size: 0.95em;
+}
+
+.data-grid strong {
+  display: block;
+  color: #8b949e;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  letter-spacing: 1px;
+}
+
+.planet-sphere {
+  border-radius: 50%;
+  background-size: 200% 100%;
+  background-repeat: repeat-x;
+  box-shadow: inset -25px -25px 40px rgba(0,0,0,0.9), 
+              inset 10px 10px 30px rgba(255,255,255,0.2), 
+              0 0 30px rgba(0, 210, 255, 0.2);
+  animation: spin 15s linear infinite;
+}
+
+@keyframes spin {
+  from { background-position: 0 0; }
+  to { background-position: -200% 0; }
+}
+
+.error-box {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #ff4444;
+  max-width: 1200px;
+  margin: 0 auto 20px auto;
+}
+
+.matches-container {
+  max-width: 1200px;
+  margin: 0 auto 20px auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.match-btn {
+  padding: 8px 15px;
+  font-size: 0.9em;
+  background: #161b22;
+  color: var(--text-color);
+  border: 1px solid #30363d;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.match-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.match-btn.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  font-weight: bold;
+}
+
+@media (max-width: 1000px) {
+  .search-panel {
+    flex-direction: column;
+  }
+  .data-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* Estilos para el Menú de Inicio (Gestalt: Proximidad y Contraste) */
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 90vh;
+  gap: 40px;
+}
+
+.home-grid {
+  display: flex;
+  gap: 40px;
+  max-width: 1000px;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.module-card {
+  background: #11151c;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 20px;
+  width: 350px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  text-align: center;
+  /* la tarjeta es un <button>: se anulan los estilos por defecto del navegador */
+  font: inherit;
+  color: inherit;
+  display: block;
+}
+
+.module-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  transform: translateY(-10px);
+}
+
+.module-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 30px rgba(0, 210, 255, 0.2);
+  border-color: var(--accent);
+}
+
+.module-image {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  margin-bottom: 20px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+
+.module-card h2 {
+  color: var(--text-color);
+  font-size: 1.4em;
+  margin-bottom: 10px;
+}
+
+.module-card p {
+  color: var(--accent);
+  margin: 0;
+}
+
+/* Estilos para la navegación inferior */
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 95vh;
+}
+
+.navigation-footer {
+  margin-top: auto;
+  padding: 40px 0 20px 0;
+  text-align: center;
+}
+
+/* Estilos del Simulador del Sistema Solar (extraídos de estilos inline) */
+.solar-map-container {
+  width: 100%;
+  height: 75vh;
+  background: #050810;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #333;
+  position: relative;
+}
+
+.solar-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(5, 8, 16, 0.85);
+  z-index: 20;
+  color: var(--accent);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.solar-fallback-banner {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: rgba(12, 16, 24, 0.88);
+  border: 1px solid #334155;
+  color: #8899aa;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 15;
+}
+
+/* Panel de información del astro (BodyInfoPanel) y selector inferior (BodySelector) */
+.body-info-panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 290px;
+  background: rgba(12, 16, 24, 0.92);
+  border: 1px solid #2a3546;
+  border-radius: 10px;
+  padding: 18px;
+  color: #fff;
+  z-index: 15;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  text-align: left;
+}
+
+.body-info-kicker {
+  font-size: 11px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 4px;
+}
+
+.body-info-title {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  color: #fff;
+}
+
+.body-info-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #bdc6d4;
+  margin: 0 0 16px 0;
+}
+
+.body-info-moons {
+  margin-bottom: 16px;
+}
+
+.body-info-moons-label {
+  font-size: 11px;
+  color: #8899aa;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.body-info-moons-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.moon-chip {
+  background: #1b2230;
+  color: #fff;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.moon-chip.active {
+  background: #ffcc00;
+  color: #000;
+}
+
+.body-info-reset-btn {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.body-selector {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  background: rgba(10, 14, 22, 0.85);
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #2a3546;
+  z-index: 15;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.selector-chip {
+  background: transparent;
+  color: #ddd;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.selector-chip.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+
+.selector-chip-sun {
+  color: #ffcc00;
+  border-color: #ffcc00;
+}
+
+.selector-chip-sun.active {
+  background: #ffcc00;
+  color: #000;
+  border-color: #ffcc00;
+}
+
+/* Historial de búsquedas recientes y Comparador de Exoplanetas */
+.matches-label {
+  color: var(--text-color);
+  margin-right: 10px;
+  font-size: 0.9em;
+}
+
+.recent-searches {
+  max-width: 1200px;
+  margin: -10px auto 20px auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.recent-clear-btn {
+  padding: 6px 12px;
+  font-size: 0.85em;
+  background: transparent;
+  color: #8b949e;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+}
+
+.viewer-placeholder {
+  color: #666;
+}
+
+.viewer-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.viewer-title-row h3 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.compare-pin-btn {
+  padding: 10px 18px;
+  font-size: 0.9em;
+}
+
+.comparison-panel {
+  max-width: 1200px;
+  margin: 0 auto 25px auto;
+  background: #11151c;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: left;
+}
+
+.comparison-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.comparison-header h3 {
+  margin: 0;
+  color: var(--accent);
+}
+
+.comparison-spheres {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 20px 0;
+  background: radial-gradient(circle at center, #1a1a2e, #000);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.comparison-sphere-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #222936;
+  text-align: left;
+}
+
+.comparison-table th {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 0.85em;
+}
+
+.search-btn-icon {
+  margin-right: 8px;
+  vertical-align: middle;
+}
