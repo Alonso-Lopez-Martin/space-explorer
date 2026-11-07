@@ -1,25 +1,69 @@
+import { Compass, Orbit, Camera, Sparkles } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { ModuleCard } from './ModuleCard';
 
-export type View = 'home' | 'exo' | 'solar';
+export type ActiveView = 'solar' | 'exo' | 'citizen';
 
-interface HomeMenuProps {
-  onNavigate: (view: Exclude<View, 'home'>) => void;
-}
-
-// Las tarjetas se describen como datos y se pintan con un map, en lugar de
-// repetir el mismo bloque JSX para cada módulo.
-const MODULES: { view: Exclude<View, 'home'>; title: string; subtitle: string; imageUrl: string }[] = [
-  { view: 'solar', title: 'Dentro de nuestro Sistema Solar', subtitle: 'Simulador 3D (Horizons JPL)', imageUrl: '/Hello_World.jpg' },
-  { view: 'exo', title: 'Fuera de nuestro Sistema Solar', subtitle: 'Explorador de Exoplanetas', imageUrl: '/Galaxy.jpg' },
+const MODULES: {
+  view: ActiveView;
+  icon: ReactNode;
+  title: string;
+  description: string;
+  cta: string;
+}[] = [
+  {
+    view: 'solar',
+    icon: <Orbit size={44} strokeWidth={1.5} />,
+    title: 'Simulador del Sistema Solar',
+    description:
+      'Mapa interactivo 3D en tiempo real conectado a la API de NASA JPL Horizons. Explora planetas, órbitas y satélites.',
+    cta: 'Iniciar Simulación →',
+  },
+  {
+    view: 'exo',
+    icon: <Compass size={44} strokeWidth={1.5} />,
+    title: 'Explorador de Exoplanetas',
+    description:
+      'Consulta el archivo astrofísico de la NASA para analizar telemetría, habitabilidad y clasificación de otros mundos.',
+    cta: 'Abrir Buscador →',
+  },
+  {
+    view: 'citizen',
+    icon: <Camera size={44} strokeWidth={1.5} />,
+    title: 'Red de Astrofotografía Ciudadana',
+    description:
+      'Envía tus capturas de eventos astronómicos validadas con Zod y explora la galería de la comunidad sincronizada con TanStack Query.',
+    cta: 'Subir y Explorar Fotos →',
+  },
 ];
 
-export function HomeMenu({ onNavigate }: HomeMenuProps) {
+interface HomeMenuProps {
+  onSelect: (view: ActiveView) => void;
+}
+
+export function HomeMenu({ onSelect }: HomeMenuProps) {
   return (
     <div className="home-container">
-      <h1>Space Explorer</h1>
-      <div className="home-grid">
-        {MODULES.map(({ view, ...card }) => (
-          <ModuleCard key={view} {...card} onSelect={() => onNavigate(view)} />
+      <div className="home-header">
+        <div className="badge">
+          <Sparkles size={14} className="search-btn-icon" /> NASA Open APIs & Citizen Science
+        </div>
+        <h1>Space Explorer</h1>
+        <p className="subtitle">
+          Selecciona un módulo de navegación para comenzar la misión de exploración astrofísica
+        </p>
+      </div>
+
+      <div className="cards-grid">
+        {MODULES.map(({ view, icon, title, description, cta }) => (
+          <ModuleCard
+            key={view}
+            icon={icon}
+            title={title}
+            description={description}
+            cta={cta}
+            onSelect={() => onSelect(view)}
+          />
         ))}
       </div>
     </div>

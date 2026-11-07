@@ -1,18 +1,20 @@
-interface ModuleCardProps {
+import type { ReactNode } from 'react';
+
+export interface ModuleCardProps {
+  icon: ReactNode;
   title: string;
-  subtitle: string;
-  imageUrl: string;
+  description: string;
+  cta: string;
   onSelect: () => void;
 }
 
-// Tarjeta de la home. Es un <button> y no un <div onClick>: así recibe foco con
-// Tab y se activa con Enter/Espacio sin código extra.
-export function ModuleCard({ title, subtitle, imageUrl, onSelect }: ModuleCardProps) {
+export function ModuleCard({ icon, title, description, cta, onSelect }: ModuleCardProps) {
   return (
     <button type="button" className="module-card" onClick={onSelect}>
-      <div className="module-image" style={{ backgroundImage: `url('${imageUrl}')` }} />
+      <div className="card-icon">{icon}</div>
       <h2>{title}</h2>
-      <p>{subtitle}</p>
+      <p>{description}</p>
+      <span className="card-cta">{cta}</span>
     </button>
   );
 }

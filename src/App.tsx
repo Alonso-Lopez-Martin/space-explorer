@@ -1,30 +1,40 @@
 import { useState } from 'react';
-import { HomeMenu, type View } from './components/HomeMenu';
-import { ViewShell } from './components/ViewShell';
-import { ExoplanetExplorer } from './components/ExoplanetExplorer';
 import { SolarSystemMap } from './components/solar/SolarSystemMap';
-import './index.css';
+import { ExoplanetExplorer } from './components/ExoplanetExplorer';
+import { CitizenSciencePortal } from './components/citizen/CitizenSciencePortal';
+import { HomeMenu, type ActiveView } from './components/HomeMenu';
+import { ViewShell } from './components/ViewShell';
 
-// App solo decide qué pantalla se ve. La búsqueda, el 3D y el menú viven en sus
-// propios componentes.
-export default function App() {
-  const [view, setView] = useState<View>('home');
-  const goHome = () => setView('home');
+type ViewMode = 'home' | ActiveView;
 
-  switch (view) {
-    case 'solar':
-      return (
-        <ViewShell title="Simulador del Sistema Solar" onBack={goHome}>
-          <SolarSystemMap />
-        </ViewShell>
-      );
-    case 'exo':
-      return (
-        <ViewShell title="🪐 Explorador de Exoplanetas" onBack={goHome}>
-          <ExoplanetExplorer />
-        </ViewShell>
-      );
-    default:
-      return <HomeMenu onNavigate={setView} />;
+export function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>('home');
+
+  if (viewMode === 'home') {
+    return <HomeMenu onSelect={setViewMode} />;
   }
+
+  if (viewMode === 'solar') {
+    return (
+      <ViewShell title="🌌 Simulador del Sistema Solar" onBack={() => setViewMode('home')}>
+        <SolarSystemMap />
+      </ViewShell>
+    );
+  }
+
+  if (viewMode === 'citizen') {
+    return (
+      <ViewShell title="📸 Red de Astrofotografía Ciudadana" onBack={() => setViewMode('home')}>
+        <CitizenSciencePortal />
+      </ViewShell>
+    );
+  }
+
+  return (
+    <ViewShell title="🪐 Explorador de Exoplanetas" onBack={() => setViewMode('home')}>
+      <ExoplanetExplorer />
+    </ViewShell>
+  );
 }
+
+export default App;
