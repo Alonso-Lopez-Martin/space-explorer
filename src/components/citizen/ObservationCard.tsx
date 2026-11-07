@@ -6,6 +6,7 @@ import {
 
 interface ObservationCardProps {
   observation: ApiObservation;
+  onInspect: (observation: ApiObservation) => void;
   onDelete: (id: string) => void;
   isDeleting: boolean;
 }
@@ -30,12 +31,20 @@ function formatCaptureDate(iso: string): string {
   });
 }
 
-// Tarjeta de la galería pública: muestra autor, lugar, fecha, equipo y telemetría,
-// pero NUNCA renderiza datos privados como `email` o `phone`.
-export function ObservationCard({ observation, onDelete, isDeleting }: ObservationCardProps) {
+export function ObservationCard({
+  observation,
+  onInspect,
+  onDelete,
+  isDeleting,
+}: ObservationCardProps) {
   return (
     <article className="obs-card">
-      <div className="obs-card-image-wrap">
+      <button
+        type="button"
+        className="obs-card-image-btn"
+        onClick={() => onInspect(observation)}
+        aria-label={`Ver fotografía completa: ${observation.title}`}
+      >
         <img
           src={observation.imageDataUrl}
           alt={observation.title}
@@ -43,7 +52,8 @@ export function ObservationCard({ observation, onDelete, isDeleting }: Observati
           loading="lazy"
         />
         <span className="obs-badge">{getCategoryLabel(observation.category)}</span>
-      </div>
+        <span className="obs-zoom-hint">🔍 Clic para ver foto completa</span>
+      </button>
 
       <div className="obs-card-body">
         <h4 className="obs-card-title">{observation.title}</h4>
@@ -62,6 +72,13 @@ export function ObservationCard({ observation, onDelete, isDeleting }: Observati
         <p className="obs-card-notes">{observation.notes}</p>
 
         <div className="obs-card-footer">
+          <button
+            type="button"
+            className="recent-clear-btn"
+            onClick={() => onInspect(observation)}
+          >
+            Ampliar imagen
+          </button>
           <button
             type="button"
             className="recent-clear-btn"

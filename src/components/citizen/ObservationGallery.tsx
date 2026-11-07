@@ -6,7 +6,7 @@ import {
   injectCorruptedObservation,
   OBSERVATIONS_QUERY_KEY,
 } from '../../services/observationsService';
-import { CATEGORY_OPTIONS } from '../../schemas/observationSchema';
+import { CATEGORY_OPTIONS, type ApiObservation } from '../../schemas/observationSchema';
 import { ObservationCard } from './ObservationCard';
 import { CorruptedObservationCard } from './CorruptedObservationCard';
 import { cn } from '../../utils/cn';
@@ -14,6 +14,7 @@ import { cn } from '../../utils/cn';
 export function ObservationGallery() {
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [inspectedObs, setInspectedObs] = useState<ApiObservation | null>(null);
 
   const { data, isPending, isError, error, isFetching } = useQuery({
     queryKey: OBSERVATIONS_QUERY_KEY,
@@ -67,7 +68,7 @@ export function ObservationGallery() {
             {isFetching && <span className="obs-fetching-pill">Actualizando...</span>}
           </h3>
           <p className="obs-gallery-subtitle">
-            Capturas verificadas con Zod. Los datos sensibles de contacto se filtran por privacidad.
+            Haz clic sobre cualquier fotografía para verla entera a tamaño completo.
           </p>
         </div>
 
@@ -83,7 +84,7 @@ export function ObservationGallery() {
         </button>
       </div>
 
-      {/* Filtro rápido por categoría astronómica */}
+      {/* Filtro rápido por categoría astronómica en una sola línea horizontal */}
       <div className="obs-filter-bar">
         <button
           type="button"
@@ -139,10 +140,49 @@ export function ObservationGallery() {
             <ObservationCard
               key={obs.id}
               observation={obs}
+              onInspect={setInspectedObs}
               onDelete={(id) => deleteMutation.mutate(id)}
               isDeleting={deleteMutation.isPending}
             />
           ))}
+        </div>
+      )}
+
+      {/* Modal / Lightbox para ver la foto entera sin recortes al hacer clic */}
+      {inspectedObs && (
+        <div
+          className="obs-lightbox-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={inspectedObs.title}
+          onClick={() => setInspectedObs(null)}
+        >
+          <div className="obs-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <div className="obs-lightbox-header">
+              <div>
+                <h4>{inspectedObs.title}</h4>
+                <p>
+                  📸 {inspectedObs.observerName} {inspectedObs.observerSurname} ·{' '}
+                  {inspectedObs.location} ({inspectedObs.country})
+                </p>
+              </div>
+              <button
+                type="button"
+                className="obs-lightbox-close"
+                onClick={() => setInspectedObs(null)}
+              >
+                ✕ Cerrar
+              </button>
+            </div>
+            <div className="obs-lightbox-img-container">
+              <img
+                src={inspectedObs.imageDataUrl}
+                alt={inspectedObs.title}
+                className="obs-lightbox-img"
+              />
+            </div>
+            <p className="obs-lightbox-notes">{inspectedObs.notes}</p>
+          </div>
         </div>
       )}
     </section>

@@ -999,3 +999,231 @@ button:disabled {
   border-radius: 10px;
   color: var(--accent);
 }
+
+/* ==========================================================================
+   Ajustes de Menú Horizontal con Fotos, Categorías en 1 línea y Lightbox
+   ========================================================================== */
+
+/* 1. Botones de la Home en horizontal (3 columnas) y con imagen superior */
+.home-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.cards-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(280px, 1fr)) !important;
+  gap: 24px !important;
+  align-items: stretch;
+  width: 100%;
+  max-width: 1200px;
+  margin: 30px auto 0 auto;
+}
+
+@media (max-width: 960px) {
+  .cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.module-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  overflow: hidden;
+  text-align: left;
+  height: 100%;
+}
+
+.module-card-media {
+  position: relative;
+  width: 100%;
+  height: 175px;
+  background: #050810;
+  overflow: hidden;
+  border-bottom: 1px solid #222b3a;
+}
+
+.module-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.module-card:hover .module-card-img {
+  transform: scale(1.06);
+}
+
+.card-icon-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(10, 14, 22, 0.88);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.module-card-content {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 10px;
+}
+
+.module-card-content h2 {
+  margin: 0;
+  font-size: 1.25em;
+}
+
+.module-card-content p {
+  margin: 0;
+  flex: 1;
+}
+
+/* 2. Barra de categorías en una sola línea horizontal */
+.obs-filter-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.obs-filter-bar .match-btn {
+  white-space: nowrap;
+  padding: 7px 13px;
+  font-size: 0.84em;
+  flex-shrink: 0;
+}
+
+/* 3. Botón de imagen en la tarjeta y Modal Lightbox para ver la foto entera */
+.obs-card-image-btn {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: #050810;
+  cursor: zoom-in;
+  overflow: hidden;
+  display: block;
+}
+
+.obs-card-image-btn:hover .obs-card-img {
+  transform: scale(1.04);
+}
+
+.obs-card-img {
+  transition: transform 0.25s ease;
+}
+
+.obs-zoom-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  background: rgba(5, 8, 16, 0.82);
+  color: #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.obs-card-image-btn:hover .obs-zoom-hint {
+  opacity: 1;
+}
+
+.obs-card-footer {
+  gap: 8px;
+}
+
+.obs-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 6, 12, 0.92);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.obs-lightbox-content {
+  background: #11151c;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  max-width: 1000px;
+  width: 100%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+}
+
+.obs-lightbox-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.obs-lightbox-header h4 {
+  margin: 0 0 4px 0;
+  color: var(--accent);
+  font-size: 1.25em;
+}
+
+.obs-lightbox-header p {
+  margin: 0;
+  color: #9ba5b4;
+  font-size: 0.9em;
+}
+
+.obs-lightbox-close {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #f0f6fc;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.obs-lightbox-img-container {
+  background: #050810;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  max-height: 68vh;
+}
+
+/* object-fit: contain garantiza que la foto se vea 100% entera sin recortar nada */
+.obs-lightbox-img {
+  max-width: 100%;
+  max-height: 68vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.obs-lightbox-notes {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.92em;
+  line-height: 1.5;
+}
