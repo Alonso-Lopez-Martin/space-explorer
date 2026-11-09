@@ -2,18 +2,25 @@ import {
   apiObservationSchema,
   validateObservationsBatch,
   type ApiObservation,
+  type CategoryFilter,
   type ObservationFormValues,
   type ValidatedObservationsBatch,
 } from '../schemas/observationSchema';
 
-// Leemos la URL base desde la variable de entorno VITE_API_URL con fallback seguro.
 const API_URL: string = import.meta.env.VITE_API_URL || '/api/observations';
 
-export const OBSERVATIONS_QUERY_KEY = ['observations'] as const;
+// Clave raíz para invalidar todas las listas de observaciones y función generadora
+// de claves parametrizadas por categoría: ['observations', category] (U4 sección 10).
+export const OBSERVATIONS_ROOT_KEY = ['observations'] as const;
+export const observationsQueryKey = (category: CategoryFilter = 'all') =>
+  [...OBSERVATIONS_ROOT_KEY, category] as const;
 
-// GET: obtiene todas las capturas y valida cada elemento con `safeParse` (Bonus).
-export async function fetchObservations(): Promise<ValidatedObservationsBatch> {
-  const response = await fetch(API_URL);
+// GET: obtiene las capturas filtradas por categoría en el servidor y las valida con `safeParse`.
+export async function fetchObservations(
+  category: CategoryFilter = 'all'
+): Promise<ValidatedObservationsBatch> {
+  const query = category !== 'all' ? `?category=${encodeURIComponent(category)}` : '';
+  const response = await fetch(`${API_URL}${query}`);
   if (!response.ok) {
     throw new Error(`Error HTTP ${response.status} al descargar el catálogo de observaciones`);
   }
@@ -23,7 +30,6 @@ export async function fetchObservations(): Promise<ValidatedObservationsBatch> {
 
 // POST: envía una nueva captura ya validada en cliente y verifica la respuesta con Zod.
 export async function createObservation(values: ObservationFormValues): Promise<ApiObservation> {
-  // Quitamos el booleano `acceptsLicense` antes de guardar el documento en el servidor.
   const { acceptsLicense: _license, ...payload } = values;
   void _license;
 
@@ -45,8 +51,7 @@ export async function createObservation(values: ObservationFormValues): Promise<
   return parsed.data;
 }
 
-// POST de prueba para el BONUS: inyecta deliberadamente un paquete corrupto en el servidor
-// saltándose el formulario para demostrar en vivo cómo `safeParse` lo atrapa al refrescar.
+// POST de prueba para el BONUS: inyecta deliberadamente un paquete corrupto en el servidor.
 export async function injectCorruptedObservation(): Promise<void> {
   const corruptedPayload = {
     observerName: 'Satélite',
@@ -76,7 +81,7 @@ export async function injectCorruptedObservation(): Promise<void> {
   }
 }
 
-// DELETE: permite eliminar una observación o limpiar un registro corrupto de la base de datos.
+// DELETE: elimina una observación o purga un registro corrupto de la base de datos.
 export async function deleteObservation(id: string): Promise<void> {
   const response = await fetch(`${API_URL}/${encodeURIComponent(id)}`, {
     method: 'DELETE',

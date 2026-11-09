@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   CATEGORY_OPTIONS,
   EQUIPMENT_OPTIONS,
@@ -8,7 +9,7 @@ interface ObservationCardProps {
   observation: ApiObservation;
   onInspect: (observation: ApiObservation) => void;
   onDelete: (id: string) => void;
-  isDeleting: boolean;
+  isDeletingThis: boolean;
 }
 
 function getCategoryLabel(value: ApiObservation['category']): string {
@@ -35,8 +36,10 @@ export function ObservationCard({
   observation,
   onInspect,
   onDelete,
-  isDeleting,
+  isDeletingThis,
 }: ObservationCardProps) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
   return (
     <article className="obs-card">
       <button
@@ -79,14 +82,40 @@ export function ObservationCard({
           >
             Ampliar imagen
           </button>
-          <button
-            type="button"
-            className="recent-clear-btn"
-            disabled={isDeleting}
-            onClick={() => onDelete(observation.id)}
-          >
-            Eliminar captura
-          </button>
+
+          {confirmingDelete ? (
+            <div className="obs-confirm-group" role="group" aria-label="Confirmar borrado">
+              <span className="obs-confirm-text">¿Borrar?</span>
+              <button
+                type="button"
+                className="recent-clear-btn obs-confirm-danger"
+                disabled={isDeletingThis}
+                onClick={() => {
+                  setConfirmingDelete(false);
+                  onDelete(observation.id);
+                }}
+              >
+                {isDeletingThis ? 'Borrando...' : 'Sí, borrar'}
+              </button>
+              <button
+                type="button"
+                className="recent-clear-btn"
+                disabled={isDeletingThis}
+                onClick={() => setConfirmingDelete(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="recent-clear-btn"
+              disabled={isDeletingThis}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              {isDeletingThis ? 'Borrando...' : 'Eliminar captura'}
+            </button>
+          )}
         </div>
       </div>
     </article>

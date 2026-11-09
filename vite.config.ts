@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // Plugin ligero de desarrollo para servir y persistir `db.json` en `/api/observations`
-// sin necesidad de lanzar un servidor externo en otra terminal ni sufrir problemas de CORS.
+// soportando filtrado por query param (?category=...) además de POST y DELETE.
 function localObservationsApiPlugin(): Plugin {
   const dbPath = path.resolve(process.cwd(), 'db.json');
 
@@ -28,9 +28,17 @@ function localObservationsApiPlugin(): Plugin {
         res.setHeader('Content-Type', 'application/json');
 
         if (req.method === 'GET') {
+          const parsedUrl = new URL(req.url ?? '', 'http://localhost');
+          const category = parsedUrl.searchParams.get('category');
           const items = readDb();
+
+          const filtered =
+            category && category !== 'all'
+              ? items.filter((item) => item.category === category)
+              : items;
+
           res.statusCode = 200;
-          res.end(JSON.stringify(items));
+          res.end(JSON.stringify(filtered));
           return;
         }
 
@@ -60,8 +68,9 @@ function localObservationsApiPlugin(): Plugin {
         }
 
         if (req.method === 'DELETE') {
-          const urlParts = (req.url ?? '').split('/').filter(Boolean);
-          const targetId = urlParts[0];
+          const cleanPath = (req.url ?? '').split('?')[0];
+          const urlParts = cleanPath.split('/').filter(Boolean);
+          const targetId = decodeURIComponent(urlParts[0] ?? '');
           const items = readDb();
           const filtered = items.filter((item) => item.id !== targetId);
           writeDb(filtered);

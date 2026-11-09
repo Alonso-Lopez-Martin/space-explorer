@@ -4,34 +4,76 @@ import {
   fetchObservations,
   deleteObservation,
   injectCorruptedObservation,
-  OBSERVATIONS_QUERY_KEY,
+  OBSERVATIONS_ROOT_KEY,
+  observationsQueryKey,
 } from '../../services/observationsService';
-import { CATEGORY_OPTIONS, type ApiObservation } from '../../schemas/observationSchema';
+import {
+  CATEGORY_OPTIONS,
+  type ApiObservation,
+  type CategoryFilter,
+  type ValidatedObservationsBatch,
+} from '../../schemas/observationSchema';
 import { ObservationCard } from './ObservationCard';
 import { CorruptedObservationCard } from './CorruptedObservationCard';
+import { ObservationLightbox } from './ObservationLightbox';
 import { cn } from '../../utils/cn';
 
 export function ObservationGallery() {
   const queryClient = useQueryClient();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [inspectedObs, setInspectedObs] = useState<ApiObservation | null>(null);
+  const [mutationFeedbackError, setMutationFeedbackError] = useState<string | null>(null);
 
+  const currentQueryKey = observationsQueryKey(selectedCategory);
+
+  // Query con clave parametrizada ['observations', selectedCategory] (U4 sección 10).
   const { data, isPending, isError, error, isFetching } = useQuery({
-    queryKey: OBSERVATIONS_QUERY_KEY,
-    queryFn: fetchObservations,
+    queryKey: currentQueryKey,
+    queryFn: () => fetchObservations(selectedCategory),
   });
 
+  // Mutación de borrado con actualización optimista, rollback en onError y estado por ítem.
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteObservation(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_QUERY_KEY });
+    onMutate: async (deletedId: string) => {
+      setMutationFeedbackError(null);
+      await queryClient.cancelQueries({ queryKey: currentQueryKey });
+      const previousBatch = queryClient.getQueryData<ValidatedObservationsBatch>(currentQueryKey);
+
+      if (previousBatch) {
+        queryClient.setQueryData<ValidatedObservationsBatch>(currentQueryKey, {
+          valid: previousBatch.valid.filter((item) => item.id !== deletedId),
+          corrupted: previousBatch.corrupted.filter((item) => item.rawId !== deletedId),
+        });
+      }
+
+      return { previousBatch };
+    },
+    onError: (err, _deletedId, context) => {
+      if (context?.previousBatch) {
+        queryClient.setQueryData(currentQueryKey, context.previousBatch);
+      }
+      setMutationFeedbackError(
+        err instanceof Error ? err.message : 'No se pudo eliminar el registro.'
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
     },
   });
 
   const injectCorruptMutation = useMutation({
     mutationFn: injectCorruptedObservation,
+    onMutate: () => {
+      setMutationFeedbackError(null);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
+    },
+    onError: (err) => {
+      setMutationFeedbackError(
+        err instanceof Error ? err.message : 'Error al inyectar el paquete de prueba.'
+      );
     },
   });
 
@@ -54,17 +96,12 @@ export function ObservationGallery() {
   const validItems = data.valid;
   const corruptedItems = data.corrupted;
 
-  const filteredItems =
-    selectedCategory === 'all'
-      ? validItems
-      : validItems.filter((item) => item.category === selectedCategory);
-
   return (
     <section className="obs-gallery-section" aria-label="Galería de astrofotografía ciudadana">
       <div className="obs-gallery-toolbar">
         <div>
           <h3>
-            🌌 Colección Pública de Astrofotografía ({filteredItems.length})
+            🌌 Colección Pública de Astrofotografía ({validItems.length})
             {isFetching && <span className="obs-fetching-pill">Actualizando...</span>}
           </h3>
           <p className="obs-gallery-subtitle">
@@ -84,7 +121,14 @@ export function ObservationGallery() {
         </button>
       </div>
 
-      {/* Filtro rápido por categoría astronómica en una sola línea horizontal */}
+      {/* Feedback de error para las mutaciones de borrado o inyección */}
+      {mutationFeedbackError && (
+        <div role="alert" className="estado-mensaje error-box">
+          ⚠ {mutationFeedbackError}
+        </div>
+      )}
+
+      {/* Filtro por categoría conectado a la queryKey ['observations', selectedCategory] */}
       <div className="obs-filter-bar">
         <button
           type="button"
@@ -124,66 +168,37 @@ export function ObservationGallery() {
                 key={report.rawId}
                 report={report}
                 onPurge={(id) => deleteMutation.mutate(id)}
-                isPurging={deleteMutation.isPending}
+                isPurgingThis={
+                  deleteMutation.isPending && deleteMutation.variables === report.rawId
+                }
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* Grid de tarjetas válidas */}
-      {filteredItems.length === 0 ? (
+      {/* Grid de tarjetas válidas con estado de borrado individual por tarjeta */}
+      {validItems.length === 0 ? (
         <p className="obs-status-box">No hay capturas registradas en esta categoría todavía.</p>
       ) : (
         <div className="obs-grid">
-          {filteredItems.map((obs) => (
+          {validItems.map((obs) => (
             <ObservationCard
               key={obs.id}
               observation={obs}
               onInspect={setInspectedObs}
               onDelete={(id) => deleteMutation.mutate(id)}
-              isDeleting={deleteMutation.isPending}
+              isDeletingThis={deleteMutation.isPending && deleteMutation.variables === obs.id}
             />
           ))}
         </div>
       )}
 
-      {/* Modal / Lightbox para ver la foto entera sin recortes al hacer clic */}
       {inspectedObs && (
-        <div
-          className="obs-lightbox-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-label={inspectedObs.title}
-          onClick={() => setInspectedObs(null)}
-        >
-          <div className="obs-lightbox-content" onClick={(e) => e.stopPropagation()}>
-            <div className="obs-lightbox-header">
-              <div>
-                <h4>{inspectedObs.title}</h4>
-                <p>
-                  📸 {inspectedObs.observerName} {inspectedObs.observerSurname} ·{' '}
-                  {inspectedObs.location} ({inspectedObs.country})
-                </p>
-              </div>
-              <button
-                type="button"
-                className="obs-lightbox-close"
-                onClick={() => setInspectedObs(null)}
-              >
-                ✕ Cerrar
-              </button>
-            </div>
-            <div className="obs-lightbox-img-container">
-              <img
-                src={inspectedObs.imageDataUrl}
-                alt={inspectedObs.title}
-                className="obs-lightbox-img"
-              />
-            </div>
-            <p className="obs-lightbox-notes">{inspectedObs.notes}</p>
-          </div>
-        </div>
+        <ObservationLightbox
+          observation={inspectedObs}
+          onClose={() => setInspectedObs(null)}
+        />
       )}
     </section>
   );

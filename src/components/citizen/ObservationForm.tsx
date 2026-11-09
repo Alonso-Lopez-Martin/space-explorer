@@ -5,56 +5,52 @@ import {
   observationFormSchema,
   CATEGORY_OPTIONS,
   EQUIPMENT_OPTIONS,
+  type ObservationFormInput,
   type ObservationFormValues,
 } from '../../schemas/observationSchema';
-import { createObservation, OBSERVATIONS_QUERY_KEY } from '../../services/observationsService';
+import { createObservation, OBSERVATIONS_ROOT_KEY } from '../../services/observationsService';
 import { ImageDropzone } from './ImageDropzone';
 
-// Valores por defecto del formulario. Como usamos z.coerce.number() en exposureSeconds
-// y bortleScale, dejamos que zodResolver gestione automáticamente la diferencia entre
-// el tipo de entrada del DOM y el tipo de salida validado (U4 sección 3).
-const DEFAULT_VALUES = {
+// Tipado con ObservationFormInput (z.input<typeof observationFormSchema>):
+// acepta `acceptsLicense: false` como boolean puro sin ningún cast artificial.
+const DEFAULT_VALUES: ObservationFormInput = {
   observerName: '',
   observerSurname: '',
   email: '',
   phone: '',
   title: '',
-  category: 'sistema-solar' as const,
+  category: 'sistema-solar',
   country: 'España',
   location: '',
   capturedAt: new Date(Date.now() - 3600_000).toISOString().slice(0, 16),
-  equipment: 'telescopio' as const,
+  equipment: 'telescopio',
   exposureSeconds: 60,
   bortleScale: 3,
   imageDataUrl: '',
   notes: '',
-  acceptsLicense: false as unknown as true,
+  acceptsLicense: false,
 };
 
 export function ObservationForm() {
   const queryClient = useQueryClient();
 
-  // `shouldFocusError: true` lleva el foco automáticamente al primer campo
-  // con error tras un submit fallido para usuarios de teclado (U4 sección 4).
   const {
     register,
     control,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm({
+  } = useForm<ObservationFormInput, unknown, ObservationFormValues>({
     resolver: zodResolver(observationFormSchema),
     defaultValues: DEFAULT_VALUES,
     shouldFocusError: true,
   });
 
-  // Mutación de TanStack Query v5: al completarse con éxito limpia el formulario
-  // e invalida la query ['observations'] para refrescar la galería automáticamente.
   const createMutation = useMutation({
     mutationFn: (values: ObservationFormValues) => createObservation(values),
     onSuccess: () => {
       reset(DEFAULT_VALUES);
-      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
     },
   });
 
@@ -63,11 +59,7 @@ export function ObservationForm() {
   };
 
   return (
-    <form
-      className="astro-form"
-      onSubmit={handleSubmit(onValidSubmit)}
-      noValidate
-    >
+    <form className="astro-form" onSubmit={handleSubmit(onValidSubmit)} noValidate>
       <div className="astro-form-header">
         <h3>📡 Registrar Nueva Observación Astronómica</h3>
         <p className="astro-form-lead">
@@ -76,7 +68,6 @@ export function ObservationForm() {
         </p>
       </div>
 
-      {/* BLOQUE 1: Datos del observador envueltos en <fieldset> y <legend> (U4 sección 4) */}
       <fieldset className="astro-fieldset">
         <legend>1. Identificación del Observador</legend>
         <div className="form-row-2">
@@ -156,7 +147,6 @@ export function ObservationForm() {
         </div>
       </fieldset>
 
-      {/* BLOQUE 2: Metadatos astrofísicos y localización */}
       <fieldset className="astro-fieldset">
         <legend>2. Telemetría y Localización del Evento</legend>
         <div className="form-row-2">
@@ -312,7 +302,6 @@ export function ObservationForm() {
         </div>
       </fieldset>
 
-      {/* BLOQUE 3: Imagen (usando Controller para integrar nuestro componente ImageDropzone) y Notas */}
       <fieldset className="astro-fieldset">
         <legend>3. Archivo Fotográfico y Notas de Campo</legend>
 
@@ -321,8 +310,11 @@ export function ObservationForm() {
           control={control}
           render={({ field }) => (
             <ImageDropzone
+              name={field.name}
               value={field.value}
               onChange={field.onChange}
+              onBlur={field.onBlur}
+              inputRef={field.ref}
               errorMessage={errors.imageDataUrl?.message}
             />
           )}
@@ -367,14 +359,12 @@ export function ObservationForm() {
         </div>
       </fieldset>
 
-      {/* Botón siempre accesible con teclado; solo se deshabilita mientras la petición POST está en curso (U4 sección 4) */}
       <div className="astro-form-actions">
         <button type="submit" disabled={createMutation.isPending}>
           {createMutation.isPending ? 'Transmitiendo telemetría...' : 'Publicar en el Archivo Ciudadano'}
         </button>
       </div>
 
-      {/* Feedback de estado global accesible con role="alert" y role="status" (U4 sección 4) */}
       {createMutation.isError && (
         <p role="alert" className="estado-mensaje error-box">
           ⚠ {createMutation.error instanceof Error ? createMutation.error.message : 'Error al enviar'}

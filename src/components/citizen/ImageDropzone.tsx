@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, type RefCallback } from 'react';
 import { Upload, Image as ImageIcon } from 'lucide-react';
 
 interface ImageDropzoneProps {
+  name: string;
   value: string;
   onChange: (dataUrl: string) => void;
+  onBlur: () => void;
+  inputRef: RefCallback<HTMLInputElement>;
   errorMessage?: string;
 }
 
@@ -16,8 +19,19 @@ const SAMPLE_CAPTURES = [
   { label: 'Muestra: Titán', url: '/Saturn_Titan.jpg' },
 ];
 
-export function ImageDropzone({ value, onChange, errorMessage }: ImageDropzoneProps) {
+export function ImageDropzone({
+  name,
+  value,
+  onChange,
+  onBlur,
+  inputRef,
+  errorMessage,
+}: ImageDropzoneProps) {
   const [fileError, setFileError] = useState<string | null>(null);
+
+  const inputId = `field-${name}`;
+  const errorId = `error-${name}`;
+  const combinedError = fileError ?? errorMessage;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -43,32 +57,33 @@ export function ImageDropzone({ value, onChange, errorMessage }: ImageDropzonePr
     reader.readAsDataURL(file);
   };
 
-  const combinedError = fileError ?? errorMessage;
-
   return (
     <div className="dropzone-wrapper">
-      <label htmlFor="astro-image-upload" className="dropzone-area">
+      <label htmlFor={inputId} className="dropzone-area">
         <Upload size={24} className="dropzone-icon" />
         <span className="dropzone-title">
-          Haz clic para seleccionar tu astrofotografía (JPG, PNG, WebP · máx. 4 MB)
+          Haz clic o tabula aquí para adjuntar tu astrofotografía (JPG, PNG, WebP · máx. 4 MB)
         </span>
         <span className="dropzone-subtitle">
-          Se procesará localmente en alta fidelidad para el archivo científico
+          Se codificará localmente en Base64 para el archivo científico
         </span>
         <input
-          id="astro-image-upload"
+          id={inputId}
+          name={name}
+          ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={handleFileChange}
+          onBlur={onBlur}
           aria-invalid={Boolean(combinedError)}
-          aria-describedby={combinedError ? 'error-imageDataUrl' : undefined}
+          aria-describedby={combinedError ? errorId : undefined}
           className="dropzone-file-input"
         />
       </label>
 
       <div className="sample-presets">
         <span className="sample-presets-label">
-          <ImageIcon size={14} className="inline-icon" /> ¿Sin foto a mano? Carga una captura rápida de prueba:
+          <ImageIcon size={14} className="inline-icon" /> ¿Sin foto a mano? Carga una muestra:
         </span>
         {SAMPLE_CAPTURES.map((sample) => (
           <button
@@ -88,18 +103,14 @@ export function ImageDropzone({ value, onChange, errorMessage }: ImageDropzonePr
       {value && (
         <div className="dropzone-preview">
           <img src={value} alt="Previsualización de la captura astronómica" className="preview-img" />
-          <button
-            type="button"
-            className="recent-clear-btn"
-            onClick={() => onChange('')}
-          >
+          <button type="button" className="recent-clear-btn" onClick={() => onChange('')}>
             Quitar imagen
           </button>
         </div>
       )}
 
       {combinedError && (
-        <p id="error-imageDataUrl" role="alert" className="field-error">
+        <p id={errorId} role="alert" className="field-error">
           {combinedError}
         </p>
       )}

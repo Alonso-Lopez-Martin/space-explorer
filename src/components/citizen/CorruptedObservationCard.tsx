@@ -1,18 +1,19 @@
+import { useState } from 'react';
 import type { CorruptedObservationReport } from '../../schemas/observationSchema';
 
 interface CorruptedObservationCardProps {
   report: CorruptedObservationReport;
   onPurge: (id: string) => void;
-  isPurging: boolean;
+  isPurgingThis: boolean;
 }
 
-// Componente demostrativo del BONUS (U4 sección 11): enseña qué campos del servidor
-// fallaron al pasar por `apiObservationSchema.safeParse`, evitando que rompan la UI.
 export function CorruptedObservationCard({
   report,
   onPurge,
-  isPurging,
+  isPurgingThis,
 }: CorruptedObservationCardProps) {
+  const [confirmingPurge, setConfirmingPurge] = useState(false);
+
   return (
     <article className="obs-card obs-card-corrupted" role="alert">
       <div className="obs-corrupted-header">
@@ -33,14 +34,39 @@ export function CorruptedObservationCard({
       </ul>
 
       <div className="obs-card-footer">
-        <button
-          type="button"
-          className="recent-clear-btn"
-          disabled={isPurging}
-          onClick={() => onPurge(report.rawId)}
-        >
-          Purgar registro corrupto del servidor
-        </button>
+        {confirmingPurge ? (
+          <div className="obs-confirm-group" role="group" aria-label="Confirmar purga">
+            <span className="obs-confirm-text">¿Purgar del servidor?</span>
+            <button
+              type="button"
+              className="recent-clear-btn obs-confirm-danger"
+              disabled={isPurgingThis}
+              onClick={() => {
+                setConfirmingPurge(false);
+                onPurge(report.rawId);
+              }}
+            >
+              {isPurgingThis ? 'Purgando...' : 'Sí, purgar'}
+            </button>
+            <button
+              type="button"
+              className="recent-clear-btn"
+              disabled={isPurgingThis}
+              onClick={() => setConfirmingPurge(false)}
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="recent-clear-btn"
+            disabled={isPurgingThis}
+            onClick={() => setConfirmingPurge(true)}
+          >
+            {isPurgingThis ? 'Purgando...' : 'Purgar registro corrupto'}
+          </button>
+        )}
       </div>
     </article>
   );
