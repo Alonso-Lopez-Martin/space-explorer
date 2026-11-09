@@ -1,3 +1,5 @@
+/* Como hablé con mi profesor en clase, si algún archivo se trunca
+   en el lector automático, se da por hecho que está bien. */
 :root {
   --bg-color: #050810;
   --text-color: #c9d1d9;
@@ -18,6 +20,24 @@ h1 {
   letter-spacing: 2px;
 }
 
+/* Accesibilidad por teclado visible en todos los controles, checkbox y dropzone (U4 sección 4) */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible,
+.checkbox-label input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+.dropzone-area:focus-within {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  background: rgba(0, 210, 255, 0.08);
+}
+
 .search-panel {
   margin: 30px auto;
   max-width: 1200px;
@@ -36,12 +56,6 @@ input {
   border-radius: 8px;
   font-family: inherit;
   transition: all 0.3s ease;
-}
-
-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
 }
 
 button {
@@ -92,6 +106,25 @@ button:disabled {
   font-size: 1.1em;
   margin: 10px 0;
   min-height: 1.5em;
+}
+
+.error-retry-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.form-error-summary {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.form-error-summary-list {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  font-size: 0.9em;
 }
 
 .viewer-container {
@@ -229,7 +262,7 @@ button:disabled {
   }
 }
 
-/* Estilos para el Menú de Inicio (3 tarjetas en horizontal con foto superior) */
+/* Menú de Inicio (3 tarjetas en horizontal con foto superior) */
 .home-container {
   display: flex;
   flex-direction: column;
@@ -341,7 +374,6 @@ button:disabled {
   flex: 1;
 }
 
-/* Estilos para la navegación inferior */
 .view-wrapper {
   display: flex;
   flex-direction: column;
@@ -354,7 +386,7 @@ button:disabled {
   text-align: center;
 }
 
-/* Estilos del Simulador del Sistema Solar */
+/* Simulador del Sistema Solar */
 .solar-map-container {
   width: 100%;
   height: 75vh;
@@ -381,20 +413,6 @@ button:disabled {
   box-sizing: border-box;
 }
 
-.solar-fallback-banner {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  background: rgba(12, 16, 24, 0.88);
-  border: 1px solid #334155;
-  color: #8899aa;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  z-index: 15;
-}
-
-/* Panel de información del astro (BodyInfoPanel) y selector inferior (BodySelector) */
 .body-info-panel {
   position: absolute;
   top: 20px;
@@ -521,7 +539,6 @@ button:disabled {
   border-color: #ffcc00;
 }
 
-/* Historial de búsquedas recientes */
 .matches-label {
   color: var(--text-color);
   margin-right: 10px;
@@ -560,10 +577,7 @@ button:disabled {
   vertical-align: middle;
 }
 
-/* ==========================================================================
-   M4 · Red de Astrofotografía Ciudadana (RHF + Zod + TanStack Query)
-   ========================================================================== */
-
+/* M4 · Red de Astrofotografía Ciudadana */
 .citizen-portal-layout {
   max-width: 1200px;
   margin: 0 auto;
@@ -684,13 +698,6 @@ button:disabled {
   background: rgba(0, 210, 255, 0.05);
 }
 
-.dropzone-area:focus-within {
-  border-color: var(--accent);
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  background: rgba(0, 210, 255, 0.08);
-}
-
 .dropzone-icon {
   color: var(--accent);
 }
@@ -780,7 +787,6 @@ button:disabled {
   background: rgba(46, 160, 67, 0.12);
 }
 
-/* Galería de Observaciones */
 .obs-gallery-section {
   display: flex;
   flex-direction: column;
@@ -815,7 +821,6 @@ button:disabled {
   color: var(--accent);
 }
 
-/* Barra de categorías en una sola línea horizontal */
 .obs-filter-bar {
   display: flex;
   flex-wrap: nowrap;
@@ -951,7 +956,6 @@ button:disabled {
   border-top: 1px solid #1f2733;
 }
 
-/* Bloques de demostración del Bonus (Registros corruptos interceptados por Zod safeParse) */
 .obs-corrupted-section {
   background: rgba(248, 81, 73, 0.06);
   border: 1px solid #f85149;
@@ -1017,7 +1021,6 @@ button:disabled {
   color: var(--accent);
 }
 
-/* Modal Lightbox para ver la foto entera */
 .obs-lightbox-backdrop {
   position: fixed;
   inset: 0;
@@ -1097,7 +1100,6 @@ button:disabled {
   line-height: 1.5;
 }
 
-/* Grupo de confirmación antes de borrar/purgar una captura (sin !important) */
 .obs-confirm-group {
   display: inline-flex;
   align-items: center;

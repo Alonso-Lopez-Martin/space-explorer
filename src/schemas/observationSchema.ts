@@ -30,13 +30,22 @@ const PHONE_REGEX = /^\+?[0-9\s-]{7,16}$/;
 const DATA_IMAGE_REGEX = /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const PUBLIC_ASSET_IMAGE_REGEX = /^\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i;
 
-function isPastOrPresentIsoDate(val: string): boolean {
+// Valida fecha y hora local del observador (formato datetime-local YYYY-MM-DDTHH:mm)
+// comprobando que sea una fecha real y que no esté en el futuro.
+function isPastOrPresentLocalDateTime(val: string): boolean {
   const parsed = Date.parse(val);
   if (Number.isNaN(parsed)) return false;
   return parsed <= Date.now() + 60_000;
 }
 
-// Esquema base compartido entre el formulario de envío y la validación de respuesta del API.
+// Evita que un input numérico vacío ('') se convierta silenciosamente en 0 con z.coerce.number()
+function requiredNumericInput(emptyOrNanMessage: string) {
+  return z
+    .union([z.string(), z.number()])
+    .refine((val) => String(val).trim() !== '', { error: emptyOrNanMessage })
+    .pipe(z.coerce.number({ error: emptyOrNanMessage }));
+}
+
 const baseObservationShape = {
   observerName: z
     .string()
@@ -49,7 +58,6 @@ const baseObservationShape = {
     .min(2, { error: 'Los apellidos deben tener al menos 2 caracteres' })
     .max(60, { error: 'Los apellidos no pueden superar los 60 caracteres' }),
   email: z.email({ error: 'Introduce un correo electrónico válido (ej. ada@astro.org)' }),
-  // Teléfono opcional expresado con .regex(...).or(z.literal('')) en lugar de .refine
   phone: z
     .string()
     .trim()
@@ -75,23 +83,24 @@ const baseObservationShape = {
     .min(3, { error: 'Especifica la localidad, comarca u observatorio' }),
   capturedAt: z
     .string()
-    .min(1, { error: 'La fecha y hora de la captura son obligatorias' })
-    .refine(isPastOrPresentIsoDate, {
-      error: 'La fecha de la toma debe ser válida y no puede estar en el futuro',
+    .min(1, { error: 'La fecha y hora local de la captura son obligatorias' })
+    .refine(isPastOrPresentLocalDateTime, {
+      error: 'La fecha y hora local de la toma deben ser válidas y no estar en el futuro',
     }),
   equipment: z.enum(equipmentValues, {
     error: 'Selecciona el equipo óptico empleado',
   }),
-  exposureSeconds: z.coerce
-    .number({ error: 'Introduce un tiempo de exposición numérico' })
-    .positive({ error: 'El tiempo de exposición debe ser mayor que 0 segundos' })
-    .max(7200, { error: 'Una toma individual no puede exceder 7200 s (2 horas)' }),
-  bortleScale: z.coerce
-    .number({ error: 'Introduce un nivel numérico de escala Bortle (1 a 9)' })
-    .int({ error: 'La escala Bortle debe ser un número entero' })
-    .min(1, { error: 'El mínimo en la escala Bortle es 1 (cielo extremadamente oscuro)' })
-    .max(9, { error: 'El máximo en la escala Bortle es 9 (centro urbano brillante)' }),
-  // Validación estricta de Data URL Base64 o activo fotográfico con extensión de imagen real
+  exposureSeconds: requiredNumericInput('Introduce un tiempo de exposición numérico')
+    .refine((n) => n > 0, { error: 'El tiempo de exposición debe ser mayor que 0 segundos' })
+    .refine((n) => n <= 7200, { error: 'Una toma individual no puede exceder 7200 s (2 horas)' }),
+  bortleScale: requiredNumericInput('Introduce un nivel numérico de escala Bortle (1 a 9)')
+    .refine((n) => Number.isInteger(n), { error: 'La escala Bortle debe ser un número entero' })
+    .refine((n) => n >= 1, {
+      error: 'El mínimo en la escala Bortle es 1 (cielo extremadamente oscuro)',
+    })
+    .refine((n) => n <= 9, {
+      error: 'El máximo en la escala Bortle es 9 (centro urbano brillante)',
+    }),
   imageDataUrl: z
     .string()
     .trim()
@@ -106,8 +115,6 @@ const baseObservationShape = {
     .max(500, { error: 'Las notas técnicas no pueden superar los 500 caracteres' }),
 };
 
-// 1) Esquema del formulario de cliente: acceptsLicense tipado con z.boolean().refine()
-//    para que el valor inicial sea `false` (boolean limpio sin casts artificiales).
 export const observationFormSchema = z
   .object({
     ...baseObservationShape,
@@ -133,7 +140,6 @@ export const observationFormSchema = z
 export type ObservationFormInput = z.input<typeof observationFormSchema>;
 export type ObservationFormValues = z.output<typeof observationFormSchema>;
 
-// 2) Esquema para validar cada registro que devuelve la API (incluye `id`).
 export const apiObservationSchema = z.object({
   id: z.string(),
   ...baseObservationShape,
@@ -152,7 +158,6 @@ export interface ValidatedObservationsBatch {
   corrupted: CorruptedObservationReport[];
 }
 
-// BONUS U4 (Sección 11): Validación de la respuesta del API con `safeParse`.
 export function validateObservationsBatch(rawJson: unknown): ValidatedObservationsBatch {
   if (!Array.isArray(rawJson)) {
     throw new Error('La respuesta del servidor no es una lista JSON válida.');

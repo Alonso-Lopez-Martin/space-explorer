@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import {
   fetchObservations,
   deleteObservation,
@@ -26,39 +31,51 @@ export function ObservationGallery() {
 
   const currentQueryKey = observationsQueryKey(selectedCategory);
 
-  // Query con clave parametrizada ['observations', selectedCategory] (U4 sección 10).
-  const { data, isPending, isError, error, isFetching } = useQuery({
+  // `placeholderData: keepPreviousData` mantiene la galería visible mientras se
+  // carga una nueva categoría, evitando parpadeos o pantallas vacías al filtrar.
+  const { data, isPending, isError, error, isFetching, refetch } = useQuery({
     queryKey: currentQueryKey,
     queryFn: () => fetchObservations(selectedCategory),
+    placeholderData: keepPreviousData,
   });
 
-  // Mutación de borrado con actualización optimista, rollback en onError y estado por ítem.
+  // Actualización optimista sobre TODAS las cachés bajo el prefijo ['observations']
+  // usando getQueriesData / setQueriesData en lugar de depender por closure de una sola clave.
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteObservation(id),
     onMutate: async (deletedId: string) => {
       setMutationFeedbackError(null);
-      await queryClient.cancelQueries({ queryKey: currentQueryKey });
-      const previousBatch = queryClient.getQueryData<ValidatedObservationsBatch>(currentQueryKey);
+      await queryClient.cancelQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
 
-      if (previousBatch) {
-        queryClient.setQueryData<ValidatedObservationsBatch>(currentQueryKey, {
-          valid: previousBatch.valid.filter((item) => item.id !== deletedId),
-          corrupted: previousBatch.corrupted.filter((item) => item.rawId !== deletedId),
-        });
-      }
+      const previousSnapshots = queryClient.getQueriesData<ValidatedObservationsBatch>({
+        queryKey: OBSERVATIONS_ROOT_KEY,
+      });
 
-      return { previousBatch };
+      queryClient.setQueriesData<ValidatedObservationsBatch>(
+        { queryKey: OBSERVATIONS_ROOT_KEY },
+        (oldBatch) => {
+          if (!oldBatch) return oldBatch;
+          return {
+            valid: oldBatch.valid.filter((item) => item.id !== deletedId),
+            corrupted: oldBatch.corrupted.filter((item) => item.rawId !== deletedId),
+          };
+        }
+      );
+
+      return { previousSnapshots };
     },
     onError: (err, _deletedId, context) => {
-      if (context?.previousBatch) {
-        queryClient.setQueryData(currentQueryKey, context.previousBatch);
+      if (context?.previousSnapshots) {
+        for (const [key, snapshot] of context.previousSnapshots) {
+          queryClient.setQueryData(key, snapshot);
+        }
       }
       setMutationFeedbackError(
         err instanceof Error ? err.message : 'No se pudo eliminar el registro.'
       );
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
     },
   });
 
@@ -67,8 +84,8 @@ export function ObservationGallery() {
     onMutate: () => {
       setMutationFeedbackError(null);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: OBSERVATIONS_ROOT_KEY });
     },
     onError: (err) => {
       setMutationFeedbackError(
@@ -87,8 +104,13 @@ export function ObservationGallery() {
 
   if (isError) {
     return (
-      <div role="alert" className="estado-mensaje error-box">
-        ⚠ Error al cargar la galería: {error instanceof Error ? error.message : 'Fallo de red'}
+      <div role="alert" className="estado-mensaje error-box error-retry-row">
+        <span>
+          ⚠ Error al cargar la galería: {error instanceof Error ? error.message : 'Fallo de red'}
+        </span>
+        <button type="button" className="recent-clear-btn" onClick={() => refetch()}>
+          Reintentar
+        </button>
       </div>
     );
   }
@@ -121,14 +143,19 @@ export function ObservationGallery() {
         </button>
       </div>
 
-      {/* Feedback de error para las mutaciones de borrado o inyección */}
       {mutationFeedbackError && (
-        <div role="alert" className="estado-mensaje error-box">
-          ⚠ {mutationFeedbackError}
+        <div role="alert" className="estado-mensaje error-box error-retry-row">
+          <span>⚠ {mutationFeedbackError}</span>
+          <button
+            type="button"
+            className="recent-clear-btn"
+            onClick={() => setMutationFeedbackError(null)}
+          >
+            Cerrar aviso
+          </button>
         </div>
       )}
 
-      {/* Filtro por categoría conectado a la queryKey ['observations', selectedCategory] */}
       <div className="obs-filter-bar">
         <button
           type="button"
@@ -154,7 +181,6 @@ export function ObservationGallery() {
         })}
       </div>
 
-      {/* Demostración en vivo del BONUS: registros corruptos atrapados por Zod safeParse */}
       {corruptedItems.length > 0 && (
         <div className="obs-corrupted-section">
           <div className="obs-corrupted-banner">
@@ -177,7 +203,6 @@ export function ObservationGallery() {
         </div>
       )}
 
-      {/* Grid de tarjetas válidas con estado de borrado individual por tarjeta */}
       {validItems.length === 0 ? (
         <p className="obs-status-box">No hay capturas registradas en esta categoría todavía.</p>
       ) : (

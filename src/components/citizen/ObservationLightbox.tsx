@@ -6,10 +6,10 @@ interface ObservationLightboxProps {
   onClose: () => void;
 }
 
-// Modal accesible para ver la astrofotografía completa:
-// - Enfoca el botón de cierre al montarse y restaura el foco previo al desmontarse.
-// - Permite cerrar pulsando la tecla Escape o haciendo clic en el fondo oscuro.
+// Modal accesible con Focus Trap (atrapa el tabulador dentro del diálogo mientras está abierto)
+// y cierre mediante tecla Escape o clic en el fondo oscuro.
 export function ObservationLightbox({ observation, onClose }: ObservationLightboxProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -20,6 +20,25 @@ export function ObservationLightbox({ observation, onClose }: ObservationLightbo
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
 
@@ -38,7 +57,11 @@ export function ObservationLightbox({ observation, onClose }: ObservationLightbo
       aria-labelledby="lightbox-title"
       onClick={onClose}
     >
-      <div className="obs-lightbox-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="obs-lightbox-content"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="obs-lightbox-header">
           <div>
             <h4 id="lightbox-title">{observation.title}</h4>
