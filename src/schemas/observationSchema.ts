@@ -26,26 +26,38 @@ const equipmentValues = ['telescopio', 'camara-dslr', 'smartphone', 'observatori
 
 export type CategoryFilter = 'all' | (typeof categoryValues)[number];
 
+// Etiquetas legibles por campo para mostrar en el resumen accesible de errores del formulario
+export const FIELD_LABELS: Record<string, string> = {
+  observerName: 'Nombre',
+  observerSurname: 'Apellidos',
+  email: 'Correo electrónico',
+  phone: 'Teléfono de contacto',
+  title: 'Título del evento o astro',
+  category: 'Categoría astronómica',
+  country: 'País',
+  location: 'Región / Observatorio',
+  capturedAt: 'Fecha y hora local de la toma',
+  equipment: 'Equipo óptico',
+  exposureSeconds: 'Exposición total (segundos)',
+  bortleScale: 'Cielo escala Bortle',
+  imageDataUrl: 'Fotografía astronómica',
+  notes: 'Notas técnicas',
+  acceptsLicense: 'Licencia de uso científico',
+};
+
 const PHONE_REGEX = /^\+?[0-9\s-]{7,16}$/;
 const DATA_IMAGE_REGEX = /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const PUBLIC_ASSET_IMAGE_REGEX = /^\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i;
 
-// Valida fecha y hora local del observador (formato datetime-local YYYY-MM-DDTHH:mm)
-// comprobando que sea una fecha real y que no esté en el futuro.
 function isPastOrPresentLocalDateTime(val: string): boolean {
   const parsed = Date.parse(val);
   if (Number.isNaN(parsed)) return false;
   return parsed <= Date.now() + 60_000;
 }
 
-// Evita que un input numérico vacío ('') se convierta silenciosamente en 0 con z.coerce.number()
-function requiredNumericInput(emptyOrNanMessage: string) {
-  return z
-    .union([z.string(), z.number()])
-    .refine((val) => String(val).trim() !== '', { error: emptyOrNanMessage })
-    .pipe(z.coerce.number({ error: emptyOrNanMessage }));
-}
-
+// Los inputs numéricos se registran con `{ valueAsNumber: true }` en RHF (entregando `number` o `NaN`
+// si se dejan vacíos), y en el JSON de la API llegan como `number`. `z.number({ error })` rechaza
+// tanto `NaN` como tipos no numéricos sin necesidad de encadenar union + pipe.
 const baseObservationShape = {
   observerName: z
     .string()
@@ -90,17 +102,15 @@ const baseObservationShape = {
   equipment: z.enum(equipmentValues, {
     error: 'Selecciona el equipo óptico empleado',
   }),
-  exposureSeconds: requiredNumericInput('Introduce un tiempo de exposición numérico')
-    .refine((n) => n > 0, { error: 'El tiempo de exposición debe ser mayor que 0 segundos' })
-    .refine((n) => n <= 7200, { error: 'Una toma individual no puede exceder 7200 s (2 horas)' }),
-  bortleScale: requiredNumericInput('Introduce un nivel numérico de escala Bortle (1 a 9)')
-    .refine((n) => Number.isInteger(n), { error: 'La escala Bortle debe ser un número entero' })
-    .refine((n) => n >= 1, {
-      error: 'El mínimo en la escala Bortle es 1 (cielo extremadamente oscuro)',
-    })
-    .refine((n) => n <= 9, {
-      error: 'El máximo en la escala Bortle es 9 (centro urbano brillante)',
-    }),
+  exposureSeconds: z
+    .number({ error: 'Introduce un tiempo de exposición numérico válido' })
+    .positive({ error: 'El tiempo de exposición debe ser mayor que 0 segundos' })
+    .max(7200, { error: 'Una toma individual no puede exceder 7200 s (2 horas)' }),
+  bortleScale: z
+    .number({ error: 'Introduce un nivel numérico de escala Bortle (1 a 9)' })
+    .int({ error: 'La escala Bortle debe ser un número entero' })
+    .min(1, { error: 'El mínimo en la escala Bortle es 1 (cielo extremadamente oscuro)' })
+    .max(9, { error: 'El máximo en la escala Bortle es 9 (centro urbano brillante)' }),
   imageDataUrl: z
     .string()
     .trim()
@@ -115,35 +125,51 @@ const baseObservationShape = {
     .max(500, { error: 'Las notas técnicas no pueden superar los 500 caracteres' }),
 };
 
-export const observationFormSchema = z
-  .object({
+// Reglas astrofísicas cruzadas compartidas entre el formulario y la validación de la API:
+// 1) Un smartphone sin montura ecuatorial no admite más de 60 s de exposición.
+// 2) En cielo urbano contaminado (Bortle > 7), cielo profundo exige al menos 30 s de exposición.
+function applyAstrophysicalRules<
+  T extends z.ZodType<{
+    equipment: (typeof equipmentValues)[number];
+    exposureSeconds: number;
+    category: (typeof categoryValues)[number];
+    bortleScale: number;
+  }>,
+>(schema: T) {
+  return schema
+    .refine((data) => !(data.equipment === 'smartphone' && data.exposureSeconds > 60), {
+      error: 'Un smartphone sin seguimiento ecuatorial no admite exposiciones mayores a 60 s',
+      path: ['exposureSeconds'],
+    })
+    .refine(
+      (data) => !(data.category === 'cielo-profundo' && data.bortleScale > 7 && data.exposureSeconds < 30),
+      {
+        error: 'En cielo urbano (Bortle > 7), un objeto de cielo profundo exige al menos 30 s de integración',
+        path: ['exposureSeconds'],
+      }
+    );
+}
+
+// 1) Esquema del formulario de cliente (incluye aceptación de licencia y reglas cruzadas)
+export const observationFormSchema = applyAstrophysicalRules(
+  z.object({
     ...baseObservationShape,
     acceptsLicense: z.boolean().refine((val) => val === true, {
       error: 'Debes confirmar la autoría y ceder la captura para uso científico',
     }),
   })
-  .refine(
-    (data) => !(data.equipment === 'smartphone' && data.exposureSeconds > 60),
-    {
-      error: 'Un smartphone sin seguimiento ecuatorial no admite exposiciones mayores a 60 s',
-      path: ['exposureSeconds'],
-    }
-  )
-  .refine(
-    (data) => !(data.category === 'cielo-profundo' && data.bortleScale > 7 && data.exposureSeconds < 30),
-    {
-      error: 'En cielo urbano (Bortle > 7), un objeto de cielo profundo exige al menos 30 s de integración',
-      path: ['exposureSeconds'],
-    }
-  );
+);
 
 export type ObservationFormInput = z.input<typeof observationFormSchema>;
 export type ObservationFormValues = z.output<typeof observationFormSchema>;
 
-export const apiObservationSchema = z.object({
-  id: z.string(),
-  ...baseObservationShape,
-});
+// 2) Esquema para validar cada registro que devuelve la API (también aplica las reglas cruzadas)
+export const apiObservationSchema = applyAstrophysicalRules(
+  z.object({
+    id: z.string(),
+    ...baseObservationShape,
+  })
+);
 
 export type ApiObservation = z.infer<typeof apiObservationSchema>;
 

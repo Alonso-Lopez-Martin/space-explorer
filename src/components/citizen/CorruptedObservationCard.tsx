@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { CorruptedObservationReport } from '../../schemas/observationSchema';
+import { cn } from '../../utils/cn';
 
 interface CorruptedObservationCardProps {
   report: CorruptedObservationReport;
@@ -15,9 +16,15 @@ export function CorruptedObservationCard({
   const [confirmingPurge, setConfirmingPurge] = useState(false);
 
   return (
-    <article className="obs-card obs-card-corrupted" role="alert">
+    <article
+      className={cn('obs-card obs-card-corrupted', isPurgingThis && 'obs-card-deleting')}
+      role="alert"
+      aria-busy={isPurgingThis}
+    >
       <div className="obs-corrupted-header">
-        <span className="obs-corrupted-badge">🛡 INTERCEPTADO POR ZOD SAFEPARSE</span>
+        <span className="obs-corrupted-badge">
+          {isPurgingThis ? '⏳ PURGANDO DEL SERVIDOR...' : '🛡 INTERCEPTADO POR ZOD SAFEPARSE'}
+        </span>
         <code className="obs-corrupted-id">ID: {report.rawId}</code>
       </div>
 
@@ -64,7 +71,7 @@ export function CorruptedObservationCard({
             disabled={isPurgingThis}
             onClick={() => setConfirmingPurge(true)}
           >
-            {isPurgingThis ? 'Purgando...' : 'Purgar registro corrupto'}
+            {isPurgingThis ? '⏳ Purgando...' : 'Purgar registro corrupto'}
           </button>
         )}
       </div>

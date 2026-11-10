@@ -23,6 +23,11 @@ import { CorruptedObservationCard } from './CorruptedObservationCard';
 import { ObservationLightbox } from './ObservationLightbox';
 import { cn } from '../../utils/cn';
 
+function getCategoryFilterName(category: CategoryFilter): string {
+  if (category === 'all') return 'Todas las categorías';
+  return CATEGORY_OPTIONS.find((c) => c.value === category)?.label.split(' (')[0] ?? category;
+}
+
 export function ObservationGallery() {
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
@@ -31,16 +36,21 @@ export function ObservationGallery() {
 
   const currentQueryKey = observationsQueryKey(selectedCategory);
 
-  // `placeholderData: keepPreviousData` mantiene la galería visible mientras se
-  // carga una nueva categoría, evitando parpadeos o pantallas vacías al filtrar.
-  const { data, isPending, isError, error, isFetching, refetch } = useQuery({
+  // `placeholderData: keepPreviousData` mantiene visibles los datos previos mientras se
+  // descarga la nueva categoría, e `isPlaceholderData` nos permite indicar en la UI
+  // exactamente qué categoría está cargándose en segundo plano.
+  const { data, isPending, isError, error, isFetching, isPlaceholderData, refetch } = useQuery({
     queryKey: currentQueryKey,
     queryFn: () => fetchObservations(selectedCategory),
     placeholderData: keepPreviousData,
   });
 
-  // Actualización optimista sobre TODAS las cachés bajo el prefijo ['observations']
-  // usando getQueriesData / setQueriesData en lugar de depender por closure de una sola clave.
+  const isSwitchingCategory = isFetching && isPlaceholderData;
+
+  // El borrado optimista aplica `setQueriesData` sobre el prefijo raíz `['observations']`
+  // porque un mismo registro (identificado por `id`) puede estar cacheado simultáneamente
+  // en `['observations', 'all']` y en su categoría específica `['observations', categoria]`.
+  // Filtrar por `id` en todas las entradas del prefijo mantiene coherentes todas las vistas.
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteObservation(id),
     onMutate: async (deletedId: string) => {
@@ -124,7 +134,13 @@ export function ObservationGallery() {
         <div>
           <h3>
             🌌 Colección Pública de Astrofotografía ({validItems.length})
-            {isFetching && <span className="obs-fetching-pill">Actualizando...</span>}
+            {isFetching && (
+              <span role="status" className="obs-fetching-pill">
+                {isSwitchingCategory
+                  ? `⏳ Cargando «${getCategoryFilterName(selectedCategory)}»...`
+                  : 'Actualizando...'}
+              </span>
+            )}
           </h3>
           <p className="obs-gallery-subtitle">
             Haz clic sobre cualquier fotografía para verla entera a tamaño completo.
@@ -156,25 +172,38 @@ export function ObservationGallery() {
         </div>
       )}
 
+      {/* Barra de filtros con indicador visual de qué categoría se está cargando con keepPreviousData */}
       <div className="obs-filter-bar">
         <button
           type="button"
           aria-pressed={selectedCategory === 'all'}
-          className={cn('match-btn', selectedCategory === 'all' && 'active')}
+          aria-busy={selectedCategory === 'all' && isSwitchingCategory}
+          className={cn(
+            'match-btn',
+            selectedCategory === 'all' && 'active',
+            selectedCategory === 'all' && isSwitchingCategory && 'loading-category'
+          )}
           onClick={() => setSelectedCategory('all')}
         >
-          Todas las categorías
+          {selectedCategory === 'all' && isSwitchingCategory ? '⏳ ' : ''}Todas las categorías
         </button>
         {CATEGORY_OPTIONS.map((cat) => {
           const isActive = selectedCategory === cat.value;
+          const isLoadingThisCategory = isActive && isSwitchingCategory;
           return (
             <button
               key={cat.value}
               type="button"
               aria-pressed={isActive}
-              className={cn('match-btn', isActive && 'active')}
+              aria-busy={isLoadingThisCategory}
+              className={cn(
+                'match-btn',
+                isActive && 'active',
+                isLoadingThisCategory && 'loading-category'
+              )}
               onClick={() => setSelectedCategory(cat.value)}
             >
+              {isLoadingThisCategory ? '⏳ ' : ''}
               {cat.label.split(' (')[0]}
             </button>
           );
@@ -206,7 +235,10 @@ export function ObservationGallery() {
       {validItems.length === 0 ? (
         <p className="obs-status-box">No hay capturas registradas en esta categoría todavía.</p>
       ) : (
-        <div className="obs-grid">
+        <div
+          className={cn('obs-grid', isSwitchingCategory && 'obs-grid-transitioning')}
+          aria-busy={isSwitchingCategory}
+        >
           {validItems.map((obs) => (
             <ObservationCard
               key={obs.id}

@@ -4,6 +4,7 @@ import {
   EQUIPMENT_OPTIONS,
   type ApiObservation,
 } from '../../schemas/observationSchema';
+import { cn } from '../../utils/cn';
 
 interface ObservationCardProps {
   observation: ApiObservation;
@@ -41,10 +42,14 @@ export function ObservationCard({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
-    <article className="obs-card">
+    <article
+      className={cn('obs-card', isDeletingThis && 'obs-card-deleting')}
+      aria-busy={isDeletingThis}
+    >
       <button
         type="button"
         className="obs-card-image-btn"
+        disabled={isDeletingThis}
         onClick={() => onInspect(observation)}
         aria-label={`Ver fotografía completa: ${observation.title}`}
       >
@@ -55,7 +60,9 @@ export function ObservationCard({
           loading="lazy"
         />
         <span className="obs-badge">{getCategoryLabel(observation.category)}</span>
-        <span className="obs-zoom-hint">🔍 Clic para ver foto completa</span>
+        <span className="obs-zoom-hint">
+          {isDeletingThis ? '⏳ Eliminando del servidor...' : '🔍 Clic para ver foto completa'}
+        </span>
       </button>
 
       <div className="obs-card-body">
@@ -78,6 +85,7 @@ export function ObservationCard({
           <button
             type="button"
             className="recent-clear-btn"
+            disabled={isDeletingThis}
             onClick={() => onInspect(observation)}
           >
             Ampliar imagen
@@ -113,7 +121,7 @@ export function ObservationCard({
               disabled={isDeletingThis}
               onClick={() => setConfirmingDelete(true)}
             >
-              {isDeletingThis ? 'Borrando...' : 'Eliminar captura'}
+              {isDeletingThis ? '⏳ Borrando captura...' : 'Eliminar captura'}
             </button>
           )}
         </div>
