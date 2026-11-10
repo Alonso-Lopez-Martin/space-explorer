@@ -6,6 +6,7 @@ Misión M4 · Full Contact Forms (React Hook Form + Zod + TanStack Query v5) —
 Para arrancar este proyecto necesitas tener Node.js instalado. Abre la terminal en la carpeta del proyecto y ejecuta:
 1. `npm install` (para instalar las dependencias).
 2. `npm run dev` (para levantar el servidor de desarrollo de Vite).
+3. `npm test` (para ejecutar la suite de tests unitarios con Vitest sobre las reglas de Zod y `safeParse`).
 
 Abre el enlace de `localhost` en tu navegador. Desde el menú principal de **Space Explorer** puedes entrar en la **Red de Astrofotografía Ciudadana** (además del Simulador 3D del Sistema Solar y del Explorador de Exoplanetas). Allí podrás subir tus propias capturas astronómicas validadas con Zod, filtrar la galería por categoría, ver las fotos a tamaño completo haciendo clic en ellas y probar el botón **«Simular Dato Corrupto en API»** para ver cómo `safeParse` atrapa datos malformados sin romper la web.
 
